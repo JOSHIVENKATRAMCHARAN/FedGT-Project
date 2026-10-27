@@ -1,0 +1,5 @@
+client_id,attack_type,source_label,target_label,attack_strength
+C11,label_flip,3,8,0.94
+C2,data_poisoning,2,9,0.8
+C1,label_flip,3,7,0.81
+C12,data_poisoning,3,5,0.52

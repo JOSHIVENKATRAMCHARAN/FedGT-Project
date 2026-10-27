@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FedGT — {% block title %}Dashboard{% endblock %}</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --sidebar-w: 240px;
+    --accent: #4f46e5;
+    --accent-light: #818cf8;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --card-radius: 12px;
+  }
+  body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh;
+    width: var(--sidebar-w); background: #1e1b4b;
+    display: flex; flex-direction: column; z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0,0,0,.25);
+  }
+  .sidebar-brand {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-brand h5 { color: #fff; font-weight: 700; margin: 0; font-size: 1.1rem; }
+  .sidebar-brand small { color: var(--accent-light); font-size: .72rem; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 20px; color: #c7d2fe; text-decoration: none;
+    font-size: .875rem; border-left: 3px solid transparent;
+    transition: all .2s;
+  }
+  .sidebar-nav a:hover, .sidebar-nav a.active {
+    background: rgba(99,102,241,.18); color: #fff;
+    border-left-color: var(--accent-light);
+  }
+  .sidebar-nav a i { width: 18px; text-align: center; font-size: .95rem; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.08); }
+  .sidebar-footer a { color: #94a3b8; font-size: .8rem; text-decoration: none; }
+  /* Main */
+  .main-wrap { margin-left: var(--sidebar-w); min-height: 100vh; }
+  .topbar {
+    background: #fff; padding: 14px 28px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar h4 { margin: 0; font-weight: 700; color: #1e293b; font-size: 1.1rem; }
+  .page-content { padding: 28px; }
+  /* Cards */
+  .card { border: none; border-radius: var(--card-radius); box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+  .card-header { background: transparent; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+  /* Stat cards */
+  .stat-card {
+    background: #fff; border-radius: var(--card-radius);
+    padding: 20px 22px; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .stat-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+  }
+  .stat-label { color: #64748b; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .stat-value { font-size: 1.7rem; font-weight: 800; color: #1e293b; line-height: 1; margin-top: 2px; }
+  /* Badge */
+  .badge-malicious { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .badge-benign { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  /* Tables */
+  .table th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #64748b; font-weight: 700; }
+  .table td { font-size: .875rem; vertical-align: middle; }
+  /* Alerts */
+  .messages-container { padding: 0 28px; }
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h5><i class="fa-solid fa-shield-halved me-2" style="color:#818cf8"></i>FedGT</h5>
+    <small>Federated Learning Security</small>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="fa-solid fa-gauge-high"></i> Dashboard
+    </a>
+    <a href="{% url 'client_monitor' %}" class="{% if request.resolver_match.url_name == 'client_monitor' %}active{% endif %}">
+      <i class="fa-solid fa-users"></i> Client Monitor
+    </a>
+    <a href="{% url 'group_viewer' %}" class="{% if request.resolver_match.url_name == 'group_viewer' %}active{% endif %}">
+      <i class="fa-solid fa-layer-group"></i> Group Viewer
+    </a>
+    <a href="{% url 'upload_dataset' %}" class="{% if request.resolver_match.url_name == 'upload_dataset' %}active{% endif %}">
+      <i class="fa-solid fa-file-zipper"></i> Upload Dataset
+    </a>
+    <a href="{% url 'training_dashboard' %}" class="{% if request.resolver_match.url_name == 'training_dashboard' %}active{% endif %}">
+      <i class="fa-solid fa-brain"></i> FL Training
+    </a>
+    <a href="{% url 'ml_models' %}" class="{% if request.resolver_match.url_name == 'ml_models' %}active{% endif %}">
+      <i class="fa-solid fa-robot"></i> ML Models
+    </a>
+    <a href="{% url 'attack_analyzer' %}" class="{% if request.resolver_match.url_name == 'attack_analyzer' %}active{% endif %}">
+      <i class="fa-solid fa-bug"></i> Attack Analyzer
+    </a>
+    <a href="{% url 'detection' %}" class="{% if request.resolver_match.url_name == 'detection' %}active{% endif %}">
+      <i class="fa-solid fa-magnifying-glass"></i> Detection
+    </a>
+    <a href="{% url 'fedgt_dashboard' %}" class="{% if request.resolver_match.url_name == 'fedgt_dashboard' %}active{% endif %}" style="border-left-color:#a78bfa;">
+      <i class="fa-solid fa-microchip"></i> FedGT Engine
+    </a>
+    <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+      <i class="fa-solid fa-chart-bar"></i> Reports
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <form method="post" action="{% url 'logout' %}" class="m-0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-link p-0 text-decoration-none" style="color:#94a3b8;font-size:.8rem;">
+        <i class="fa-solid fa-right-from-bracket me-2"></i>Logout ({{ user.username }})
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <h4>{% block page_title %}Dashboard{% endblock %}</h4>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-primary">{{ user.username }}</span>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div class="messages-container mt-3">
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+      {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,16 @@
+client_id,client_name,region,device_type,is_malicious
+C1,Scott and Sons,East Nathanielbury,Hospital Node,1
+C2,Hendricks Inc,Courtneyborough,Mobile,1
+C3,"Waters, Villa and Roth",Martinberg,Mobile,0
+C4,"Colon, Robinson and Jones",Lake Brucehaven,Mobile,0
+C5,King Ltd,Fieldshaven,Edge Server,0
+C6,"Holt, Cantrell and Williams",Kurtburgh,Edge Server,0
+C7,Randolph-Jones,Rebekahburgh,IoT,0
+C8,"Garza, Rios and Martin",Port Deniseshire,Edge Server,0
+C9,Herrera-Baker,Dawnport,Edge Server,0
+C10,Salinas-Knight,Cruzborough,Edge Server,0
+C11,Brown-Wilkinson,Lake Cindy,Mobile,1
+C12,Luna-Ramos,Loriland,Mobile,1
+C13,Luna PLC,South Jonathanmouth,Edge Server,0
+C14,"Hoffman, Miller and Brown",Johnstonfurt,Mobile,0
+C15,Brock PLC,West Rickyfort,IoT,0

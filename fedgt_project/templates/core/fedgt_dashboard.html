@@ -1,0 +1,484 @@
+{% extends 'core/base.html' %}
+{% block title %}FedGT Engine{% endblock %}
+{% block page_title %}<i class="fa-solid fa-microchip me-2 text-primary"></i>FedGT Engine — Unified Control Panel{% endblock %}
+
+{% block extra_head %}
+<style>
+  .engine-card { border: none; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.09); }
+  .engine-header {
+    background: linear-gradient(135deg,#1e1b4b,#312e81);
+    color:#fff; border-radius: 14px 14px 0 0;
+    padding: 14px 20px; font-weight: 700; font-size:.95rem;
+    display:flex; align-items:center; gap:10px;
+  }
+  .engine-header i { font-size:1.1rem; color:#a78bfa; }
+  .pill-badge {
+    display:inline-block; padding:2px 10px; border-radius:99px;
+    font-size:.72rem; font-weight:700; letter-spacing:.04em;
+  }
+  .pill-flagged   { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .pill-safe      { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+  .pill-malicious { background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+  .pill-cluster-0 { background:#ede9fe; color:#4f46e5; border:1px solid #c4b5fd; }
+  .pill-cluster-1 { background:#dcfce7; color:#16a34a; border:1px solid #86efac; }
+  .pill-cluster-2 { background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+  .pill-cluster-3 { background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
+  .action-btn {
+    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    color:#fff; border:none; border-radius:8px;
+    padding:8px 20px; font-weight:600; font-size:.85rem;
+    cursor:pointer; transition:opacity .2s;
+  }
+  .action-btn:hover { opacity:.88; }
+  .action-btn.green  { background:linear-gradient(135deg,#059669,#10b981); }
+  .action-btn.orange { background:linear-gradient(135deg,#d97706,#f59e0b); }
+  .action-btn.red    { background:linear-gradient(135deg,#dc2626,#ef4444); }
+  .score-bar { height:8px; border-radius:4px; background:#e2e8f0; overflow:hidden; width:80px; }
+  .score-fill { height:100%; background:linear-gradient(90deg,#4f46e5,#a78bfa); border-radius:4px; }
+  .score-fill.danger { background:linear-gradient(90deg,#dc2626,#f87171); }
+  .section-divider {
+    border:none; border-top:2px dashed #e2e8f0; margin:28px 0;
+  }
+  .empty-state { padding:40px; text-align:center; color:#94a3b8; }
+  .empty-state i { font-size:2.5rem; margin-bottom:12px; }
+  .round-select { border-radius:8px; border:1px solid #e2e8f0;
+    padding:6px 12px; font-size:.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── CONTROL PANEL ───────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+
+  <!-- FedGT Decode -->
+  <div class="col-md-6 col-xl-3">
+    <div class="engine-card card h-100">
+      <div class="engine-header"><i class="fa-solid fa-code-branch"></i>FedGT Decode</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Infer malicious clients from binary group test results using the
+          FedGT frequency-weighted scoring algorithm.
+        </p>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="decode">
+          <div class="mb-2">
+            <select name="round_number" class="form-select form-select-sm round-select w-100">
+              <option value="">All Rounds</option>
+              {% for r in available_rounds %}
+              <option value="{{ r }}">Round {{ r }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="action-btn w-100 mt-1">
+            <i class="fa-solid fa-play me-1"></i> Run FedGT Decode
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PCA Anomaly -->
+  <div class="col-md-6 col-xl-3">
+    <div class="engine-card card h-100">
+      <div class="engine-header"><i class="fa-solid fa-chart-scatter"></i>PCA Anomaly</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Compute live PCA anomaly scores from model update vectors
+          <code>[loss, accuracy, update_norm, gradient_variance]</code>.
+        </p>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="pca">
+          <div class="mb-2">
+            <select name="round_number" class="form-select form-select-sm round-select w-100">
+              <option value="">All Rounds</option>
+              {% for r in available_rounds %}
+              <option value="{{ r }}">Round {{ r }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="action-btn green w-100 mt-1">
+            <i class="fa-solid fa-rotate me-1"></i> Recompute PCA
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- K-Means -->
+  <div class="col-md-6 col-xl-3">
+    <div class="engine-card card h-100">
+      <div class="engine-header"><i class="fa-solid fa-object-group"></i>K-Means Cluster</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Cluster clients by mean update behaviour across all rounds.
+          Visualises separation of benign vs. malicious update distributions.
+        </p>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="cluster">
+          <div class="mb-2">
+            <select name="n_clusters" class="form-select form-select-sm round-select w-100">
+              <option value="2">k = 2</option>
+              <option value="3" selected>k = 3</option>
+              <option value="4">k = 4</option>
+            </select>
+          </div>
+          <button type="submit" class="action-btn orange w-100 mt-1">
+            <i class="fa-solid fa-diagram-project me-1"></i> Cluster Clients
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secure Aggregation -->
+  <div class="col-md-6 col-xl-3">
+    <div class="engine-card card h-100">
+      <div class="engine-header"><i class="fa-solid fa-shield-halved"></i>Secure Aggregation</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          FedAvg with norm-clipping. Excludes flagged clients from final
+          gradient averaging, computes global model accuracy per round.
+        </p>
+        <form method="post" class="mb-2">{% csrf_token %}
+          <input type="hidden" name="action" value="aggregate_all">
+          <button type="submit" class="action-btn red w-100">
+            <i class="fa-solid fa-gears me-1"></i> Aggregate All Rounds
+          </button>
+        </form>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="action" value="aggregate_round">
+          <div class="input-group input-group-sm">
+            <select name="round_number" class="form-select form-select-sm round-select">
+              {% for r in available_rounds %}
+              <option value="{{ r }}">Round {{ r }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">Go</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ── SECTION 1: FedGT DECODE RESULTS ───────────────────────────── -->
+<div class="engine-card card mb-4">
+  <div class="engine-header">
+    <i class="fa-solid fa-code-branch"></i>
+    FedGT Decode — Suspicion Scores
+    {% if has_decode %}
+    <span class="ms-auto pill-badge pill-flagged">
+      {{ decode_results|length }} clients scored
+    </span>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if has_decode %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Client ID</th>
+            <th>Status</th>
+            <th>Suspicion Score</th>
+            <th>Score Bar</th>
+            <th>FedGT Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in decode_results %}
+          <tr {% if d.flagged %}style="background:#fef2f2"{% endif %}>
+            <td class="fw-semibold">{{ d.client_id }}</td>
+            <td>
+              {% if d.client_id in malicious_ids %}
+              <span class="pill-badge pill-malicious">⚠ Known Malicious</span>
+              {% else %}
+              <span class="pill-badge pill-safe">✓ Benign</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="fw-bold {% if d.flagged %}text-danger{% endif %}">
+                {{ d.suspicion_score }}
+              </span>
+            </td>
+            <td>
+              <div class="score-bar">
+                <div class="score-fill {% if d.flagged %}danger{% endif %}"
+                     style="width:{% widthratio d.suspicion_score decode_results.0.suspicion_score 100 %}%;
+                            max-width:100%;"></div>
+              </div>
+            </td>
+            <td>
+              {% if d.flagged %}
+              <span class="badge bg-danger">🚨 FLAGGED</span>
+              {% else %}
+              <span class="badge bg-success">✓ Clear</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-code-branch d-block"></i>
+      <p class="mb-0">No decode results yet. Click <strong>Run FedGT Decode</strong> above.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── SECTION 2: PCA SCORES ─────────────────────────────────────── -->
+<div class="engine-card card mb-4">
+  <div class="engine-header">
+    <i class="fa-solid fa-chart-scatter"></i>
+    Live PCA Anomaly Scores — Latest Round
+  </div>
+  <div class="card-body p-0">
+    {% if pca_latest %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead class="table-light">
+          <tr><th>Client ID</th><th>Round</th><th>PCA Score (PC1)</th><th>Anomaly?</th></tr>
+        </thead>
+        <tbody>
+          {% for p in pca_latest %}
+          <tr>
+            <td class="fw-semibold">{{ p.client_id }}</td>
+            <td>{{ p.round }}</td>
+            <td>
+              <code class="{% if p.score > 2 or p.score < -2 %}text-danger fw-bold{% endif %}">
+                {{ p.score }}
+              </code>
+            </td>
+            <td>
+              {% if p.score > 2 or p.score < -2 %}
+              <span class="pill-badge pill-flagged">High Deviation</span>
+              {% else %}
+              <span class="pill-badge pill-safe">Normal</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-chart-scatter d-block"></i>
+      <p class="mb-0">No PCA scores yet. Click <strong>Recompute PCA</strong> above.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── SECTION 3: K-MEANS CLUSTER SCATTER ────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="engine-card card h-100">
+      <div class="engine-header">
+        <i class="fa-solid fa-object-group"></i>K-Means Cluster Scatter (PCA 2D)
+      </div>
+      <div class="card-body">
+        {% if has_clusters %}
+        <canvas id="clusterScatter" style="max-height:300px;"></canvas>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa-solid fa-object-group d-block"></i>
+          <p class="mb-0">No cluster data. Click <strong>Cluster Clients</strong> above.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="engine-card card h-100">
+      <div class="engine-header">
+        <i class="fa-solid fa-table-list"></i>Cluster Assignments
+      </div>
+      <div class="card-body p-0">
+        {% if has_clusters %}
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr><th>Client ID</th><th>Cluster</th><th>PC1</th><th>PC2</th></tr>
+          </thead>
+          <tbody>
+            {% for c in clusters %}
+            <tr>
+              <td class="fw-semibold">{{ c.client_id }}</td>
+              <td>
+                <span class="pill-badge pill-cluster-{{ c.cluster_label }}">
+                  Cluster {{ c.cluster_label }}
+                </span>
+              </td>
+              <td><code>{{ c.pca_x }}</code></td>
+              <td><code>{{ c.pca_y }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <p class="mb-0">Run clustering first.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 4: SECURE AGGREGATION ─────────────────────────────── -->
+<div class="engine-card card mb-4">
+  <div class="engine-header">
+    <i class="fa-solid fa-shield-halved"></i>
+    Secure Aggregation Results
+    {% if has_agg %}
+    <span class="ms-auto pill-badge pill-safe">{{ agg_results|length }} rounds computed</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if has_agg %}
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <canvas id="aggAccChart" style="max-height:220px;"></canvas>
+      </div>
+      <div class="col-md-6">
+        <canvas id="aggLossChart" style="max-height:220px;"></canvas>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Round</th>
+            <th>Global Accuracy</th>
+            <th>Global Loss</th>
+            <th>Included</th>
+            <th>Excluded</th>
+            <th>Clipped</th>
+            <th>Excluded Clients</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in agg_results %}
+          <tr>
+            <td class="fw-bold">{{ a.round }}</td>
+            <td>
+              <span class="badge bg-primary">{{ a.global_accuracy|floatformat:2 }}%</span>
+            </td>
+            <td>
+              <span class="badge bg-warning text-dark">{{ a.global_loss }}</span>
+            </td>
+            <td><span class="badge bg-success">{{ a.included_count }}</span></td>
+            <td>
+              {% with excl=a.excluded_clients_list %}
+              <span class="badge {% if excl %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ excl|length }}
+              </span>
+              {% endwith %}
+            </td>
+            <td><span class="badge bg-info text-dark">{{ a.clipped_count }}</span></td>
+            <td class="small text-muted">
+              {% with excl=a.excluded_clients_list %}
+              {% if excl %}{{ excl|join:", " }}{% else %}—{% endif %}
+              {% endwith %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-shield-halved d-block"></i>
+      <p class="mb-0">No aggregation results. Click <strong>Aggregate All Rounds</strong> above.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if has_clusters %}
+const clusterDatasets = {{ cluster_datasets_json|safe }};
+// Add point labels
+clusterDatasets.forEach(ds => {
+  ds.pointRadius = 8;
+  ds.pointHoverRadius = 11;
+});
+new Chart(document.getElementById('clusterScatter'), {
+  type: 'scatter',
+  data: { datasets: clusterDatasets },
+  options: {
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const pt = ctx.raw;
+            return `${pt.label || ''} (${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'PC1' } },
+      y: { title: { display: true, text: 'PC2' } }
+    }
+  }
+});
+{% endif %}
+
+{% if has_agg %}
+const aggRounds = {{ agg_rounds_json }};
+const aggAcc    = {{ agg_acc_json }};
+const aggLoss   = {{ agg_loss_json }};
+const aggClipped = {{ agg_clipped_json }};
+
+new Chart(document.getElementById('aggAccChart'), {
+  type: 'line',
+  data: {
+    labels: aggRounds,
+    datasets: [
+      { label: 'Global Accuracy (%)', data: aggAcc,
+        borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.1)',
+        fill: true, tension: 0.35 },
+    ]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom' },
+               title: { display: true, text: 'Global Accuracy After Secure Aggregation' } },
+    scales: { y: { min: 0, max: 100 } }
+  }
+});
+
+new Chart(document.getElementById('aggLossChart'), {
+  type: 'bar',
+  data: {
+    labels: aggRounds,
+    datasets: [
+      { label: 'Global Loss', data: aggLoss,
+        backgroundColor: '#f59e0b', borderRadius: 5 },
+      { label: 'Clipped Updates', data: aggClipped,
+        backgroundColor: '#ef4444', borderRadius: 5, type: 'line',
+        yAxisID: 'y2', borderColor: '#ef4444', pointRadius: 4 }
+    ]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom' },
+               title: { display: true, text: 'Global Loss & Clipped Count' } },
+    scales: {
+      y: { title: { display: true, text: 'Loss' } },
+      y2: { position: 'right', title: { display: true, text: 'Clipped' }, grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

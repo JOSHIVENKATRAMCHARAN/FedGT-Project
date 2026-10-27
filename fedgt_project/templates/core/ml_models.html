@@ -1,0 +1,145 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+{% block title %}ML Models{% endblock %}
+{% block page_title %}<i class="fa-solid fa-robot me-2 text-primary"></i>Machine Learning Models{% endblock %}
+
+{% block content %}
+<!-- Train Controls -->
+<div class="card mb-4">
+  <div class="card-header py-3">Train Models</div>
+  <div class="card-body">
+    <form method="post" class="row g-3 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label class="form-label fw-semibold small text-muted">Select Model</label>
+        <select name="model_key" class="form-select">
+          <option value="all">— Train All Models —</option>
+          {% for key, label in model_labels %}
+          <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fa-solid fa-play me-2"></i>Train
+        </button>
+      </div>
+      <div class="col-12">
+        <small class="text-muted">Training uses client_data.csv with a stratified 75% train / 25% test split. Metrics are calculated from the held-out test set.</small>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if trained %}
+<!-- Metrics Table -->
+<div class="card mb-4">
+  <div class="card-header py-3">Model Performance Metrics</div>
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <thead class="table-light">
+        <tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Trained At</th></tr>
+      </thead>
+      <tbody>
+        {% for m in trained %}
+        <tr>
+          <td class="fw-semibold">{{ m.get_name_display }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px;width:80px;">
+                <div class="progress-bar bg-primary" style="width:{{ m.accuracy }}%"></div>
+              </div>
+              <span class="badge bg-primary">{{ m.accuracy }}%</span>
+            </div>
+          </td>
+          <td><span class="badge bg-info text-dark">{{ m.precision }}%</span></td>
+          <td><span class="badge bg-warning text-dark">{{ m.recall }}%</span></td>
+          <td><span class="badge bg-success">{{ m.f1_score }}%</span></td>
+          <td class="text-muted small">{{ m.trained_at|date:"M d, Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Comparison Charts -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-3">Accuracy Comparison (Bar)</div>
+      <div class="card-body">
+        <canvas id="accBar" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-3">All Metrics Comparison (Line)</div>
+      <div class="card-body">
+        <canvas id="metricsLine" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confusion Matrices -->
+<div class="card mb-4">
+  <div class="card-header py-3">Confusion Matrices</div>
+  <div class="card-body">
+    <div class="row g-4">
+      {% for m in trained %}
+        {% if m.name in cm_images %}
+        <div class="col-md-6">
+          <h6 class="text-center fw-semibold mb-2">{{ m.get_name_display }}</h6>
+          <img src="data:image/png;base64,{{ cm_images|get_item:m.name }}" class="img-fluid rounded" alt="CM {{ m.name }}">
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="fa-solid fa-robot fa-3x mb-3 text-primary opacity-50"></i>
+    <p class="fs-5">No models trained yet.</p>
+    <p>Click <strong>Train</strong> above to train your first model.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const names = {{ chart_names|safe }};
+const accs  = {{ chart_accs|safe }};
+const precs = {{ chart_precs|safe }};
+const recs  = {{ chart_recs|safe }};
+const f1s   = {{ chart_f1s|safe }};
+
+{% if trained %}
+new Chart(document.getElementById('accBar'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [{ label: 'Accuracy (%)', data: accs, backgroundColor: ['#4f46e5','#22c55e','#f59e0b','#ef4444'], borderRadius: 8 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
+});
+new Chart(document.getElementById('metricsLine'), {
+  type: 'line',
+  data: {
+    labels: names,
+    datasets: [
+      { label: 'Accuracy', data: accs, borderColor: '#4f46e5', tension: 0.3 },
+      { label: 'Precision', data: precs, borderColor: '#22c55e', tension: 0.3 },
+      { label: 'Recall', data: recs, borderColor: '#f59e0b', tension: 0.3 },
+      { label: 'F1-Score', data: f1s, borderColor: '#ef4444', tension: 0.3 },
+    ]
+  },
+  options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { min: 0, max: 100 } } }
+});
+{% endif %}
+</script>
+{% endblock %}

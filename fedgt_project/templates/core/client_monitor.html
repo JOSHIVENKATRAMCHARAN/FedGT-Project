@@ -1,0 +1,150 @@
+{% extends 'core/base.html' %}
+{% block title %}Client Monitor{% endblock %}
+{% block page_title %}<i class="fa-solid fa-users me-2 text-primary"></i>Client Monitor{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <span>All Federated Clients</span>
+    <span class="text-muted small">{{ client_list|length }} clients total</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Client ID</th>
+            <th>Name</th>
+            <th>Region</th>
+            <th>Device</th>
+            <th>Status</th>
+            <th>Attack Type</th>
+            <th>Latest Round Acc</th>
+            <th>Latest Loss</th>
+            <th>Update Norm</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in client_list %}
+          <tr class="{% if item.client.is_malicious %}table-danger{% endif %}">
+            <td><span class="fw-bold font-monospace">{{ item.client.client_id }}</span></td>
+            <td>{{ item.client.client_name }}</td>
+            <td><i class="fa-solid fa-location-dot me-1 text-muted"></i>{{ item.client.region }}</td>
+            <td><span class="badge bg-secondary">{{ item.client.device_type }}</span></td>
+            <td>
+              {% if item.client.is_malicious %}
+                <span class="badge badge-malicious px-2 py-1"><i class="fa-solid fa-skull-crossbones me-1"></i>Malicious</span>
+              {% else %}
+                <span class="badge badge-benign px-2 py-1"><i class="fa-solid fa-check me-1"></i>Benign</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if item.attack %}
+                <span class="badge bg-danger">{{ item.attack.attack_type }}</span>
+                <small class="text-muted ms-1">({{ item.attack.source_label }}→{{ item.attack.target_label }})</small>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if item.latest_update %}
+                <span class="fw-semibold {% if item.latest_update.accuracy < 80 %}text-danger{% else %}text-success{% endif %}">
+                  {{ item.latest_update.accuracy }}%
+                </span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if item.latest_update %}{{ item.latest_update.loss }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if item.latest_update %}{{ item.latest_update.update_norm }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── K-Means Cluster Scatter ── -->
+{% if clusters %}
+<div class="card mt-4">
+  <div class="card-header py-3 d-flex align-items-center gap-2">
+    <i class="fa-solid fa-object-group text-warning"></i>
+    K-Means Client Clustering (PCA 2D Projection)
+    <a href="{% url 'fedgt_dashboard' %}" class="ms-auto btn btn-sm btn-outline-warning">
+      <i class="fa-solid fa-microchip me-1"></i> FedGT Engine
+    </a>
+  </div>
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <canvas id="clusterScatterMonitor" style="max-height:280px;"></canvas>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Client</th><th>Cluster</th><th>Actual Status</th></tr>
+          </thead>
+          <tbody>
+            {% for c in clusters %}
+            <tr>
+              <td class="fw-bold font-monospace">{{ c.client_id }}</td>
+              <td>
+                <span class="badge"
+                  style="background:{% if c.cluster_label == 0 %}#4f46e5{% elif c.cluster_label == 1 %}#22c55e{% elif c.cluster_label == 2 %}#f59e0b{% else %}#ef4444{% endif %}">
+                  Cluster {{ c.cluster_label }}
+                </span>
+              </td>
+              <td>
+                {% for item in client_list %}
+                  {% if item.client.client_id == c.client_id %}
+                    {% if item.client.is_malicious %}
+                    <span class="badge badge-malicious">Malicious</span>
+                    {% else %}
+                    <span class="badge badge-benign">Benign</span>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if clusters %}
+<script>
+const clusterDatasets = {{ cluster_datasets_json|safe }};
+clusterDatasets.forEach(ds => { ds.pointRadius = 9; ds.pointHoverRadius = 12; });
+new Chart(document.getElementById('clusterScatterMonitor'), {
+  type: 'scatter',
+  data: { datasets: clusterDatasets },
+  options: {
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const pt = ctx.raw;
+            return `${pt.label || ''} (${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'PC1' } },
+      y: { title: { display: true, text: 'PC2' } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

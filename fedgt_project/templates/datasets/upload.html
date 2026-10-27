@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}Upload Dataset{% endblock %}
+{% block page_title %}<i class="fa-solid fa-file-zipper me-2 text-primary"></i>Upload Dataset{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">FedGT Dataset ZIP</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Dataset archive</label>
+            <input type="file" name="dataset_zip" accept=".zip" class="form-control" required>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="replace" id="replaceData" checked>
+            <label class="form-check-label" for="replaceData">Replace current imported dataset</label>
+          </div>
+          <button class="btn btn-primary" type="submit">
+            <i class="fa-solid fa-upload me-1"></i> Upload and Import
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">Required CSV Files</div>
+      <div class="card-body">
+        <ul class="mb-0 small">
+          <li>clients.csv</li>
+          <li>client_data.csv</li>
+          <li>poisoned_clients.csv</li>
+          <li>group_assignments.csv</li>
+          <li>model_updates.csv</li>
+          <li>test_results.csv</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if result %}
+<div class="card mt-4">
+  <div class="card-header">Import Result</div>
+  <div class="card-body">
+    <p class="mb-1"><strong>Extracted to:</strong> {{ result.extract_dir }}</p>
+    <p class="mb-0"><strong>Imported from:</strong> {{ result.csv_dir }}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

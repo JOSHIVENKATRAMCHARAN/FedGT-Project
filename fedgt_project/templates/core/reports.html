@@ -1,0 +1,175 @@
+{% extends 'core/base.html' %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}<i class="fa-solid fa-chart-bar me-2 text-primary"></i>Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#ede9fe;"><i class="fa-solid fa-users" style="color:#7c3aed;"></i></div>
+      <div><div class="stat-label">Total Clients</div><div class="stat-value">{{ total_clients }}</div></div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;"><i class="fa-solid fa-skull-crossbones" style="color:#dc2626;"></i></div>
+      <div><div class="stat-label">Malicious</div><div class="stat-value text-danger">{{ malicious_clients }}</div></div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;"><i class="fa-solid fa-check" style="color:#16a34a;"></i></div>
+      <div><div class="stat-label">Benign</div><div class="stat-value text-success">{{ benign_clients }}</div></div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;"><i class="fa-solid fa-percent" style="color:#2563eb;"></i></div>
+      <div><div class="stat-label">Attack Rate</div><div class="stat-value">{{ mal_pct }}%</div></div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff7ed;"><i class="fa-solid fa-arrow-trend-down" style="color:#c2410c;"></i></div>
+      <div><div class="stat-label">Avg Loss</div><div class="stat-value" style="font-size:1.3rem;">{{ avg_loss }}</div></div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;"><i class="fa-solid fa-bullseye" style="color:#16a34a;"></i></div>
+      <div><div class="stat-label">Avg Accuracy</div><div class="stat-value" style="font-size:1.3rem;">{{ avg_acc }}%</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Group Test Results Pie -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header py-3">Group Test Results Distribution</div>
+      <div class="card-body d-flex align-items-center justify-content-center flex-column">
+        <canvas id="testPie" style="max-height:220px;"></canvas>
+        <div class="mt-3 small text-muted text-center">
+          <strong>{{ positive_tests }}</strong> positive (infected) &nbsp;|&nbsp; <strong>{{ negative_tests }}</strong> negative (clean)
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Model metrics bar -->
+  <div class="col-md-8">
+    <div class="card h-100">
+      <div class="card-header py-3">Model Performance Overview</div>
+      <div class="card-body">
+        {% if trained_models %}
+        <canvas id="modelBar" style="max-height:260px;"></canvas>
+        {% else %}
+        <div class="text-center py-4 text-muted">No trained models yet. <a href="{% url 'ml_models' %}">Train models →</a></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Model Summary Table -->
+{% if trained_models %}
+<div class="card mb-4">
+  <div class="card-header py-3">Detailed Model Report</div>
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <thead class="table-light">
+        <tr><th>#</th><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Rank</th></tr>
+      </thead>
+      <tbody>
+        {% for m in trained_models %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td class="fw-semibold">{{ m.get_name_display }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px;width:70px;">
+                <div class="progress-bar bg-primary" style="width:{{ m.accuracy }}%"></div>
+              </div>
+              <span>{{ m.accuracy }}%</span>
+            </div>
+          </td>
+          <td>{{ m.precision }}%</td>
+          <td>{{ m.recall }}%</td>
+          <td>{{ m.f1_score }}%</td>
+          <td>
+            {% if forloop.first %}
+            <span class="badge bg-warning text-dark"><i class="fa-solid fa-trophy me-1"></i>Best</span>
+            {% else %}
+            <span class="text-muted">#{{ forloop.counter }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- FedGT Summary -->
+<div class="card">
+  <div class="card-header py-3">FedGT System Summary</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="p-3 rounded" style="background:#fef2f2;border:1px solid #fecaca;">
+          <h6 class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Attack Detection</h6>
+          <p class="small text-muted mb-0">{{ mal_pct }}% of clients identified as malicious. Attack rate within expected range for FedGT benchmarks.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+          <h6 class="text-success fw-bold"><i class="fa-solid fa-shield-halved me-2"></i>Secure Aggregation</h6>
+          <p class="small text-muted mb-0">{{ positive_pct }}% of group tests flagged suspicious. FedGT decoding successfully isolates compromised groups.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 rounded" style="background:#eff6ff;border:1px solid #bfdbfe;">
+          <h6 class="text-primary fw-bold"><i class="fa-solid fa-chart-line me-2"></i>Global Model Health</h6>
+          <p class="small text-muted mb-0">Average federated accuracy: <strong>{{ avg_acc }}%</strong>. Training converging with loss: <strong>{{ avg_loss }}</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Chart(document.getElementById('testPie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Positive (Infected)', 'Negative (Clean)'],
+    datasets: [{ data: [{{ positive_tests }}, {{ negative_tests }}], backgroundColor: ['#ef4444', '#22c55e'], borderWidth: 0 }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+});
+
+{% if trained_models %}
+const modelNames = [{% for m in trained_models %}"{{ m.get_name_display }}",{% endfor %}];
+const modelAccs  = [{% for m in trained_models %}{{ m.accuracy }},{% endfor %}];
+const modelPrecs = [{% for m in trained_models %}{{ m.precision }},{% endfor %}];
+const modelF1s   = [{% for m in trained_models %}{{ m.f1_score }},{% endfor %}];
+new Chart(document.getElementById('modelBar'), {
+  type: 'bar',
+  data: {
+    labels: modelNames,
+    datasets: [
+      { label: 'Accuracy', data: modelAccs, backgroundColor: '#4f46e5', borderRadius: 6 },
+      { label: 'Precision', data: modelPrecs, backgroundColor: '#22c55e', borderRadius: 6 },
+      { label: 'F1-Score', data: modelF1s, backgroundColor: '#f59e0b', borderRadius: 6 },
+    ]
+  },
+  options: {
+    plugins: { legend: { position: 'top' } },
+    scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

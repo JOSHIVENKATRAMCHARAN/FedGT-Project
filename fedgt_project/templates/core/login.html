@@ -1,0 +1,36 @@
+{% extends 'core/base.html' %}
+{% block auth_content %}
+<div style="min-height:100vh;background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4f46e5 100%);display:flex;align-items:center;justify-content:center;">
+  <div style="width:380px;">
+    <div class="text-center mb-4">
+      <div style="width:70px;height:70px;background:rgba(255,255,255,.15);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fa-solid fa-shield-halved" style="font-size:2rem;color:#fff;"></i>
+      </div>
+      <h3 style="color:#fff;font-weight:800;">FedGT System</h3>
+      <p style="color:#a5b4fc;font-size:.9rem;">Federated Learning Security Platform</p>
+    </div>
+    <div class="card p-4">
+      {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-danger py-2 mb-3">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold text-muted small">Username</label>
+          <input type="text" name="username" class="form-control" placeholder="admin" required>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold text-muted small">Password</label>
+          <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 fw-semibold">
+          <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In
+        </button>
+      </form>
+      <p class="text-muted text-center mt-3 small mb-0">FedGT College Project — ML Security</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
